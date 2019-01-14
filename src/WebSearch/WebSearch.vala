@@ -33,30 +33,40 @@ public class WebSearch.Plug : Gtk.Grid {
         var label = new Gtk.Label (_("Select the search engine to use when launching a web search from within the Applications menu."));
 
         var choice_label = new Gtk.Label (_("Search the web with"));
-        selector.attach(choice_label, 0, 0, 1, 1);
+        selector.attach (choice_label, 0, 0, 1, 1);
 
         Gtk.ListStore store = new Gtk.ListStore (2, typeof (string), typeof (string));
         Gtk.TreeIter iter;
-        store.append (out iter);
-        store.set (iter, 0, "duckduckgo", 1, _("DuckDuckGo (default)"));
-        store.append (out iter);
-        store.set (iter, 0, "google",     1, _("Google"));
-        store.append (out iter);
-        store.set (iter, 0, "bing",       1, _("Bing"));
-        store.append (out iter);
-        store.set (iter, 0, "yahoo",      1, _("Yahoo!"));
+        add_item (store, out iter, "duckduckgo", _("DuckDuckGo (default)"));
+        add_item (store, out iter, "google",     _("Google"));
+        add_item (store, out iter, "bing",       _("Bing"));
+        add_item (store, out iter, "yahoo",      _("Yahoo!"));
 
-        var engine_choice = new Gtk.ComboBox.with_model(store);
+        var engine_choice = new Gtk.ComboBox.with_model (store);
         selector.attach (engine_choice,   1, 0, 1, 1);
         var renderer = new Gtk.CellRendererText ();
         engine_choice.pack_start (renderer, true);
         engine_choice.add_attribute (renderer, "text", 1);
-        engine_choice.active = 0;
 
-        this.attach(label, 0, 0, 1, 1);
-        this.attach(selector, 0, 1, 1, 1);
+        var chosen = "duckduckgo";
+        for(bool next = store.get_iter_first (out iter); next; next = store.iter_next (ref iter)) {
+            Value id;
+            store.get_value (iter, 0, out id);
+            if (((string) id) == chosen) {
+                break;
+            }
+        }
+        engine_choice.set_active_iter (iter);
+
+        this.attach (label, 0, 0, 1, 1);
+        this.attach (selector, 0, 1, 1, 1);
 
         show_all ();
+    }
+
+    void add_item (Gtk.ListStore store, out Gtk.TreeIter iter, string id, string text) {
+        store.append (out iter);
+        store.set (iter, 0, id, 1, text);
     }
 
     public Plug () {
