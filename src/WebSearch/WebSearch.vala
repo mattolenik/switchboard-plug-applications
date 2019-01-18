@@ -94,23 +94,12 @@ public class WebSearch.Plug : Gtk.Grid {
         } else {
             engine_id = settings.search_engine[0];
         }
-        // TODO check engine_id is valid
-        bool valid_id = false;
-        for (bool next = store.get_iter_first (out iter); next; next = store.iter_next (ref iter)) {
-            Value id;
-            store.get_value (iter, 0, out id);
-            if (((string) id) == engine_id) {
-                valid_id = true;
-                break;
-            }
+        if (engine_id == "custom") {
+            custom_query.text = settings.search_engine[1];
+            custom_box.no_show_all = false;
+            custom_box.visible = true;
         }
-        if (!valid_id) {
-            debug("Invalid search engine ID found, reverting to default");
-            engine_id = default_engine;
-            settings.search_engine = new string[] { engine_id };
-            // TODO: replace with proper lookup for finding ID
-            store.get_iter_first (out iter);
-        }
+        iter = get_iter_for_id (engine_id) ?? get_iter_for_id (default_engine);
         engine_choice.set_active_iter (iter);
         engine_choice.changed.connect (() => {
             Gtk.TreeIter i;
@@ -130,11 +119,6 @@ public class WebSearch.Plug : Gtk.Grid {
             }
         });
 
-        if (engine_id == "custom") {
-            custom_query.text = settings.search_engine[1];
-            custom_box.no_show_all = false;
-            custom_box.visible = true;
-        }
         custom_query.changed.connect (() => {
             var text = custom_query.text;
             //if (text.contains("{query}")) {
@@ -155,6 +139,18 @@ public class WebSearch.Plug : Gtk.Grid {
         this.attach (custom_box, 0, 2, 1, 1);
 
         show_all ();
+    }
+
+    private Gtk.TreeIter? get_iter_for_id (string id) {
+        Gtk.TreeIter iter;
+        for (bool next = store.get_iter_first (out iter); next; next = store.iter_next (ref iter)) {
+            Value id_value;
+            store.get_value (iter, 0, out id_value);
+            if ((string) id_value == id) {
+                return iter;
+            }
+        }
+        return null;
     }
 
     public Plug () {
