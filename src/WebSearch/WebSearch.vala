@@ -120,7 +120,7 @@ public class WebSearch.Plug : Gtk.Grid {
             store.get_value (i, 0, out id);
             if ((string) id == "custom") {
                 custom_query.text = settings.search_engine[1];
-                settings.search_engine = new string[] { (string) id, custom_query.text, "" };
+                settings.search_engine = new string[] { (string) id, custom_query.text };
                 custom_box.visible = true;
                 custom_box.no_show_all = false;
                 custom_box.show_all ();
@@ -150,7 +150,7 @@ public class WebSearch.Plug : Gtk.Grid {
             custom_error.visible = false;
             custom_error.no_show_all = true;
         }
-        settings.search_engine = new string[] { "custom", custom_query.text, "" };
+        settings.search_engine = new string[] { "custom", custom_query.text };
     }
 
     private Gtk.TreeIter? get_iter_for_id (string id) {
