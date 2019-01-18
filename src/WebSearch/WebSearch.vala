@@ -21,13 +21,16 @@
 
 
 public class WebSearch.Plug : Gtk.Grid {
-    private Slingshot.Settings settings;
+    private Wingpanel.ApplicationsMenu.Settings settings;
     private const string default_engine = "duckduckgo";
 
     private static Gee.HashMap<string, string> search_engine_choices;
 
+    private Gtk.Entry custom_name;
     private Gtk.Entry custom_query;
     private Gtk.ComboBox engine_choice;
+    private Gtk.Grid custom_box;
+    private Gtk.ListStore store;
 
     static construct {
         search_engine_choices = new Gee.HashMap<string, string>();
@@ -45,10 +48,26 @@ public class WebSearch.Plug : Gtk.Grid {
         this.row_spacing = 24;
         this.margin = 24;
         this.margin_top = 64;
+        settings = new Wingpanel.ApplicationsMenu.Settings ();
+        custom_box = new Gtk.Grid () {
+            column_spacing = 10,
+            visible = false,
+            no_show_all = true
+        };
+        custom_query = new Gtk.Entry () {
+            hexpand = true,
+            placeholder_text = "e.g. https://mycustomsearch.com/?q={query}"
+        };
+        custom_name = new Gtk.Entry () {
+            placeholder_text = "MyCustomSearch"
+        };
+        custom_box.attach (custom_name, 0, 0, 1, 1);
+        custom_box.attach (custom_query, 1, 0, 3, 1);
 
-        var selector = new Gtk.Grid ();
-        selector.halign = Gtk.Align.START;
-        selector.column_spacing = 10;
+        var selector = new Gtk.Grid () {
+            halign = Gtk.Align.START,
+            column_spacing = 10
+        };
 
         var label = new Gtk.Label (_("Select the search engine to use when launching a web search from within the Applications menu."));
 
@@ -56,7 +75,7 @@ public class WebSearch.Plug : Gtk.Grid {
         selector.attach (choice_label, 0, 0, 1, 1);
 
         // This structure corresponds to the search_engine_choices map structure.
-        Gtk.ListStore store = new Gtk.ListStore (2, typeof (string), typeof (string));
+        store = new Gtk.ListStore (2, typeof (string), typeof (string));
         Gtk.TreeIter iter;
         foreach (var choice in search_engine_choices.entries) {
             store.append (out iter);
@@ -69,9 +88,10 @@ public class WebSearch.Plug : Gtk.Grid {
         engine_choice.pack_start (renderer, true);
         engine_choice.add_attribute (renderer, "text", 1);
 
-        settings = new Wingpanel.ApplicationsMenu.Settings ();
-        string engine_id = default_engine;
-        if (settings.search_engine != null && settings.search_engine.length > 0) {
+        string engine_id;
+        if (settings.search_engine == null || settings.search_engine.length == 0) {
+            engine_id = default_engine;
+        } else {
             engine_id = settings.search_engine[0];
         }
         // TODO check engine_id is valid
@@ -85,7 +105,10 @@ public class WebSearch.Plug : Gtk.Grid {
             }
         }
         if (!valid_id) {
+            debug("Invalid search engine ID found, reverting to default");
             engine_id = default_engine;
+            settings.search_engine = new string[] { engine_id };
+            // TODO: replace with proper lookup for finding ID
             store.get_iter_first (out iter);
         }
         engine_choice.set_active_iter (iter);
@@ -95,25 +118,22 @@ public class WebSearch.Plug : Gtk.Grid {
             Value id;
             store.get_value (i, 0, out id);
             if ((string) id == "custom") {
-                settings.search_engine = new string[] { (string) id, custom_query.text, "Search for %s with custom" };
-                custom_query.visible = true;
-                custom_query.no_show_all = false;
+                custom_query.text = settings.search_engine[1];
+                settings.search_engine = new string[] { (string) id, custom_query.text, custom_name.text };
+                custom_box.visible = true;
+                custom_box.no_show_all = false;
+                custom_box.show_all ();
             } else {
                 settings.search_engine = new string[] { (string) id };
-                custom_query.visible = false;
-                custom_query.no_show_all = true;
+                custom_box.visible = false;
+                custom_box.no_show_all = true;
             }
         });
 
-        custom_query = new Gtk.Entry ();
-        custom_query.placeholder_text = "e.g. https://mycustomsearch.com/?q={query}";
-        custom_query.visible = false;
-        custom_query.no_show_all = true;
-
         if (engine_id == "custom") {
             custom_query.text = settings.search_engine[1];
-            custom_query.no_show_all = false;
-            custom_query.visible = true;
+            custom_box.no_show_all = false;
+            custom_box.visible = true;
         }
         custom_query.changed.connect (() => {
             var text = custom_query.text;
@@ -123,13 +143,16 @@ public class WebSearch.Plug : Gtk.Grid {
             //    // TODO: display label indicating error
             //    debug("Custom query string does not contain {query}");
                 // Revert to default so that search still works
-                settings.search_engine = new string[] { "custom", text, "Search custom" };
+                settings.search_engine = new string[] { "custom", text, custom_name.text };
             //}
+        });
+        custom_name.changed.connect (() => {
+            settings.search_engine = new string[] { "custom", custom_query.text, custom_name.text };
         });
 
         this.attach (label, 0, 0, 1, 1);
         this.attach (selector, 0, 1, 1, 1);
-        this.attach (custom_query, 0, 2, 1, 1);
+        this.attach (custom_box, 0, 2, 1, 1);
 
         show_all ();
     }

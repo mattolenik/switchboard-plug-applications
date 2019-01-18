@@ -1,6 +1,6 @@
 plug_files = files(
     'Plug.vala',
-    'Slingshot/Settings.vala',
+    'Settings.vala',
     'Startup/Utils.vala',
     'Startup/Startup.vala',
     'Startup/Controller.vala',
