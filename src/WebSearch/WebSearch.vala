@@ -57,17 +57,23 @@ public class WebSearch.Plug : Gtk.Grid {
         };
         custom_query = new Gtk.Entry () {
             hexpand = true,
-            placeholder_text = "e.g. https://mycustomsearch.com/?q={query}"
+            placeholder_text = _("e.g. https://example.com/?q={query}")
         };
         custom_error = new Gtk.Label (null) {
-            label = "<span foreground='red'>The URL must contain {query} within it. Place {query} where the search terms should go.</span>",
+            label = _("<span foreground='red'>The URL must contain {query} somewhere within it. Place {query} where the search terms should be.</span>"),
             use_markup = true,
             halign = Gtk.Align.START,
             no_show_all = true,
             visible = false
         };
-        custom_box.attach (custom_query, 0, 0, 1, 1);
-        custom_box.attach (custom_error, 0, 1, 1, 1);
+        var custom_query_label = new Gtk.Label (null) {
+            label = _("Custom URL"),
+            halign = Gtk.Align.START,
+            hexpand = false
+        };
+        custom_box.attach (custom_query_label, 0, 0, 1, 1);
+        custom_box.attach (custom_query,       1, 0, 1, 1);
+        custom_box.attach (custom_error,       0, 1, 2, 1);
 
         var selector = new Gtk.Grid () {
             halign = Gtk.Align.START,
@@ -135,7 +141,7 @@ public class WebSearch.Plug : Gtk.Grid {
     }
 
     private void custom_query_changed() {
-        if (!custom_query.text.contains("{query}")) {
+        if (!custom_query.text.contains("{query}") && custom_query.text.length > 0) {
             debug("Custom query string does not contain {query}");
             custom_error.visible = true;
             custom_error.no_show_all = false;
