@@ -60,7 +60,7 @@ public class WebSearch.Plug : Gtk.Grid {
             placeholder_text = _("https://example.com/?q={query}")
         };
         custom_error = new Gtk.Label (null) {
-            label = _("<span color='red'>The URL must contain {query} somewhere within it. Place {query} where the search terms should be.</span>"),
+            label = _("<span color='red'>Be sure to place <b>{query}</b> in the URL wherever the search terms should be.</span>"),
             use_markup = true,
             halign = Gtk.Align.START,
             no_show_all = true,
@@ -73,7 +73,7 @@ public class WebSearch.Plug : Gtk.Grid {
         };
         custom_box.attach (custom_query_label, 0, 0, 1, 1);
         custom_box.attach (custom_query,       1, 0, 1, 1);
-        custom_box.attach (custom_error,       0, 1, 2, 1);
+        custom_box.attach (custom_error,       1, 1, 1, 1);
 
         var selector = new Gtk.Grid () {
             halign = Gtk.Align.START,
