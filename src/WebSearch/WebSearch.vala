@@ -57,10 +57,10 @@ public class WebSearch.Plug : Gtk.Grid {
         };
         custom_query = new Gtk.Entry () {
             hexpand = true,
-            placeholder_text = _("e.g. https://example.com/?q={query}")
+            placeholder_text = _("https://example.com/?q={query}")
         };
         custom_error = new Gtk.Label (null) {
-            label = _("<span foreground='red'>The URL must contain {query} somewhere within it. Place {query} where the search terms should be.</span>"),
+            label = _("<span color='red'>The URL must contain {query} somewhere within it. Place {query} where the search terms should be.</span>"),
             use_markup = true,
             halign = Gtk.Align.START,
             no_show_all = true,
