@@ -26,7 +26,6 @@ public class WebSearch.Plug : Gtk.Grid {
 
     private static Gee.HashMap<string, string> search_engine_choices;
 
-    private Gtk.Entry custom_name;
     private Gtk.Entry custom_query;
     private Gtk.Label custom_error;
     private Gtk.ComboBox engine_choice;
@@ -51,6 +50,7 @@ public class WebSearch.Plug : Gtk.Grid {
         this.margin_top = 64;
         settings = new Wingpanel.ApplicationsMenu.Settings ();
         custom_box = new Gtk.Grid () {
+            row_spacing = 5,
             column_spacing = 10,
             visible = false,
             no_show_all = true
@@ -59,17 +59,15 @@ public class WebSearch.Plug : Gtk.Grid {
             hexpand = true,
             placeholder_text = "e.g. https://mycustomsearch.com/?q={query}"
         };
-        custom_name = new Gtk.Entry () {
-            placeholder_text = "MyCustomSearch"
-        };
         custom_error = new Gtk.Label (null) {
             label = "<span foreground='red'>The URL must contain {query} within it. Place {query} where the search terms should go.</span>",
             use_markup = true,
+            halign = Gtk.Align.START,
+            no_show_all = true,
             visible = false
         };
-        custom_box.attach (custom_name, 0, 0, 1, 1);
-        custom_box.attach (custom_query, 1, 0, 3, 1);
-        custom_box.attach (custom_error, 0, 1, 3, 1);
+        custom_box.attach (custom_query, 0, 0, 1, 1);
+        custom_box.attach (custom_error, 0, 1, 1, 1);
 
         var selector = new Gtk.Grid () {
             halign = Gtk.Align.START,
@@ -105,6 +103,7 @@ public class WebSearch.Plug : Gtk.Grid {
             custom_query.text = settings.search_engine[1];
             custom_box.no_show_all = false;
             custom_box.visible = true;
+            custom_query_changed();
         }
         iter = get_iter_for_id (engine_id) ?? get_iter_for_id (default_engine);
         engine_choice.set_active_iter (iter);
@@ -115,7 +114,7 @@ public class WebSearch.Plug : Gtk.Grid {
             store.get_value (i, 0, out id);
             if ((string) id == "custom") {
                 custom_query.text = settings.search_engine[1];
-                settings.search_engine = new string[] { (string) id, custom_query.text, custom_name.text };
+                settings.search_engine = new string[] { (string) id, custom_query.text, "" };
                 custom_box.visible = true;
                 custom_box.no_show_all = false;
                 custom_box.show_all ();
@@ -126,28 +125,26 @@ public class WebSearch.Plug : Gtk.Grid {
             }
         });
 
-        custom_query.changed.connect (() => {
-            var text = custom_query.text;
-            if (!text.contains("{query}")) {
-                debug("Custom query string does not contain {query}");
-                settings.search_engine = new string[] { default_engine };
-                custom_error.visible = true;
-                custom_error.show_all ();
-            } else {
-                // TODO: display label indicating error
-                settings.search_engine = new string[] { "custom", text, custom_name.text };
-                custom_error.visible = false;
-            }
-        });
-        custom_name.changed.connect (() => {
-            settings.search_engine = new string[] { "custom", custom_query.text, custom_name.text };
-        });
+        custom_query.changed.connect (custom_query_changed);
 
         this.attach (label, 0, 0, 1, 1);
         this.attach (selector, 0, 1, 1, 1);
         this.attach (custom_box, 0, 2, 1, 1);
 
         show_all ();
+    }
+
+    private void custom_query_changed() {
+        if (!custom_query.text.contains("{query}")) {
+            debug("Custom query string does not contain {query}");
+            custom_error.visible = true;
+            custom_error.no_show_all = false;
+            custom_error.show_all ();
+        } else {
+            custom_error.visible = false;
+            custom_error.no_show_all = true;
+        }
+        settings.search_engine = new string[] { "custom", custom_query.text, "" };
     }
 
     private Gtk.TreeIter? get_iter_for_id (string id) {
