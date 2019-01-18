@@ -28,6 +28,7 @@ public class WebSearch.Plug : Gtk.Grid {
 
     private Gtk.Entry custom_name;
     private Gtk.Entry custom_query;
+    private Gtk.Label custom_error;
     private Gtk.ComboBox engine_choice;
     private Gtk.Grid custom_box;
     private Gtk.ListStore store;
@@ -61,8 +62,14 @@ public class WebSearch.Plug : Gtk.Grid {
         custom_name = new Gtk.Entry () {
             placeholder_text = "MyCustomSearch"
         };
+        custom_error = new Gtk.Label (null) {
+            label = "<span foreground='red'>The URL must contain {query} within it. Place {query} where the search terms should go.</span>",
+            use_markup = true,
+            visible = false
+        };
         custom_box.attach (custom_name, 0, 0, 1, 1);
         custom_box.attach (custom_query, 1, 0, 3, 1);
+        custom_box.attach (custom_error, 0, 1, 3, 1);
 
         var selector = new Gtk.Grid () {
             halign = Gtk.Align.START,
@@ -121,14 +128,16 @@ public class WebSearch.Plug : Gtk.Grid {
 
         custom_query.changed.connect (() => {
             var text = custom_query.text;
-            //if (text.contains("{query}")) {
-            //    settings.search_engine[1] = text;
-            //} else {
-            //    // TODO: display label indicating error
-            //    debug("Custom query string does not contain {query}");
-                // Revert to default so that search still works
+            if (!text.contains("{query}")) {
+                debug("Custom query string does not contain {query}");
+                settings.search_engine = new string[] { default_engine };
+                custom_error.visible = true;
+                custom_error.show_all ();
+            } else {
+                // TODO: display label indicating error
                 settings.search_engine = new string[] { "custom", text, custom_name.text };
-            //}
+                custom_error.visible = false;
+            }
         });
         custom_name.changed.connect (() => {
             settings.search_engine = new string[] { "custom", custom_query.text, custom_name.text };
