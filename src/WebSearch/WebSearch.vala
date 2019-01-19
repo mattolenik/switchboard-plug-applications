@@ -21,10 +21,15 @@
 
 
 public class WebSearch.Plug : Gtk.Grid {
+    class Choice {
+        public string text;
+        public int sort_id;
+    }
+
     private Wingpanel.ApplicationsMenu.Settings settings;
     private const string default_engine = "duckduckgo";
 
-    private static Gee.HashMap<string, string> search_engine_choices;
+    private static Gee.HashMap<string, Choice> search_engine_choices;
 
     private Gtk.Entry custom_query;
     private Gtk.Label custom_error;
@@ -33,14 +38,17 @@ public class WebSearch.Plug : Gtk.Grid {
     private Gtk.ListStore store;
 
     static construct {
-        search_engine_choices = new Gee.HashMap<string, string>();
-        search_engine_choices["duckduckgo"] = _("DuckDuckGo (default)");
-        search_engine_choices["google"]     = _("Google");
-        search_engine_choices["bing"]       = _("Bing");
-        search_engine_choices["yahoo"]      = _("Yahoo");
-        search_engine_choices["yandex"]     = _("Yandex");
-        search_engine_choices["baidu"]      = _("Baidu");
-        search_engine_choices["custom"]     = _("Custom");
+        // sort_id is used to pre-sort the items. We want alphabetical except for the default, placed at the top,
+        // and custom, placed at the bottom. The reasoning being that it "feels right" to have the default option
+        // most visible at the top, and custom, being the least likely to be used, at the bottom.
+        search_engine_choices = new Gee.HashMap<string,  Choice>();
+        search_engine_choices["duckduckgo"] = new Choice () { sort_id = 0, text = _("DuckDuckGo (default)") };
+        search_engine_choices["baidu"]      = new Choice () { sort_id = 1, text = _("Baidu") };
+        search_engine_choices["bing"]       = new Choice () { sort_id = 2, text = _("Bing") };
+        search_engine_choices["google"]     = new Choice () { sort_id = 3, text = _("Google") };
+        search_engine_choices["yahoo"]      = new Choice () { sort_id = 4, text = _("Yahoo!") };
+        search_engine_choices["yandex"]     = new Choice () { sort_id = 5, text = _("Yandex") };
+        search_engine_choices["custom"]     = new Choice () { sort_id = 6, text = _("Custom") };
     }
 
     construct {
@@ -86,11 +94,11 @@ public class WebSearch.Plug : Gtk.Grid {
         selector.attach (choice_label, 0, 0, 1, 1);
 
         // This structure corresponds to the search_engine_choices map structure.
-        store = new Gtk.ListStore (2, typeof (string), typeof (string));
+        store = new Gtk.ListStore (3, typeof (string), typeof (string), typeof (int));
         Gtk.TreeIter iter;
         foreach (var choice in search_engine_choices.entries) {
             store.append (out iter);
-            store.set (iter, 0, choice.key, 1, choice.value);
+            store.set (iter, 0, choice.key, 1, choice.value.text, 2, choice.value.sort_id);
         }
 
         engine_choice = new Gtk.ComboBox.with_model (store);
@@ -132,6 +140,8 @@ public class WebSearch.Plug : Gtk.Grid {
         });
 
         custom_query.changed.connect (custom_query_changed);
+
+        store.set_sort_column_id (2, Gtk.SortType.ASCENDING);
 
         this.attach (label, 0, 0, 1, 1);
         this.attach (selector, 0, 1, 1, 1);
