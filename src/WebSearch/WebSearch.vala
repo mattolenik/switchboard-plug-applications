@@ -47,13 +47,13 @@ public class WebSearch.Plug : Gtk.Grid {
         * and custom (placed at the bottom). The reasoning being that it "feels right" to have the default option
         * most visible at the top, and custom, being the least likely to be used, at the bottom.
         */
-        search_engine_choices = new Gee.HashMap<string,  Choice>();
-        search_engine_choices["duckduckgo"]     = new Choice () { sort_id = 0, text = _("DuckDuckGo (default)") };
-        search_engine_choices["baidu"]          = new Choice () { sort_id = 1, text = _("Baidu") };
-        search_engine_choices["bing"]           = new Choice () { sort_id = 2, text = _("Bing") };
-        search_engine_choices["google"]         = new Choice () { sort_id = 3, text = _("Google") };
-        search_engine_choices["yahoo"]          = new Choice () { sort_id = 4, text = _("Yahoo!") };
-        search_engine_choices["yandex"]         = new Choice () { sort_id = 5, text = _("Yandex") };
+        search_engine_choices = new Gee.HashMap<string, Choice> ();
+        search_engine_choices["duckduckgo"] = new Choice () { sort_id = 0, text = _("DuckDuckGo (default)") };
+        search_engine_choices["baidu"] = new Choice () { sort_id = 1, text = _("Baidu") };
+        search_engine_choices["bing"] = new Choice () { sort_id = 2, text = _("Bing") };
+        search_engine_choices["google"] = new Choice () { sort_id = 3, text = _("Google") };
+        search_engine_choices["yahoo"] = new Choice () { sort_id = 4, text = _("Yahoo!") };
+        search_engine_choices["yandex"] = new Choice () { sort_id = 5, text = _("Yandex") };
         search_engine_choices[CUSTOM_ENGINE_ID] = new Choice () { sort_id = 6, text = _("Custom") };
 
         this.halign = Gtk.Align.CENTER;
@@ -71,28 +71,28 @@ public class WebSearch.Plug : Gtk.Grid {
             hexpand = true,
             placeholder_text = _("https://example.com/?q={query}")
         };
-        custom_error = new Gtk.Label (null) {
-            label = _("<span color='red'>Be sure to place <b>{query}</b> in the URL wherever the search terms should be.</span>"),
+        custom_error = new Gtk.Label (
+            _("<span color='red'>Be sure to place <b>{query}</b> in the URL wherever the search terms should appear.</span>")) {
             use_markup = true,
             halign = Gtk.Align.START,
             no_show_all = true,
             visible = false
         };
-        var custom_query_label = new Gtk.Label (null) {
-            label = _("Custom URL"),
+        var custom_query_label = new Gtk.Label (_("Custom URL")) {
             halign = Gtk.Align.START,
             hexpand = false
         };
         custom_box.attach (custom_query_label, 0, 0, 1, 1);
-        custom_box.attach (custom_query,       1, 0, 1, 1);
-        custom_box.attach (custom_error,       1, 1, 1, 1);
+        custom_box.attach (custom_query, 1, 0, 1, 1);
+        custom_box.attach (custom_error, 1, 1, 1, 1);
 
         var selector = new Gtk.Grid () {
             halign = Gtk.Align.START,
             column_spacing = 10
         };
 
-        var label = new Gtk.Label (_("Select the search engine to use when launching a web search from within the Applications menu."));
+        var label = new Gtk.Label (
+            _("Select the search engine to use when launching a web search from within the Applications menu."));
 
         var choice_label = new Gtk.Label (_("Search the web with"));
         selector.attach (choice_label, 0, 0, 1, 1);
@@ -117,10 +117,17 @@ public class WebSearch.Plug : Gtk.Grid {
         gsettings.bind ("web-search-engine-id", engine_choice, "active_id", GLib.SettingsBindFlags.DEFAULT);
         gsettings.bind ("web-search-custom-url", custom_query, "text", GLib.SettingsBindFlags.DEFAULT);
 
+        // Fall back to the default if a bad ID is found. This shouldn't happen unless the gsettings were tampered with.
         if (engine_choice.active_id == null || engine_choice.active_id.chomp () == "") {
-            // Fall back to the default if a bad ID is found. This shouldn't happen unless the gsettings were tampered with.
             engine_choice.active_id = DEFAULT_ENGINE_ID;
         }
+
+        if (engine_choice.active_id == CUSTOM_ENGINE_ID) {
+            show_widget (custom_box);
+        } else {
+            hide_widget (custom_box);
+        }
+
         engine_choice.changed.connect (() => {
             Gtk.TreeIter i;
             engine_choice.get_active_iter (out i);
@@ -134,19 +141,13 @@ public class WebSearch.Plug : Gtk.Grid {
         });
 
         custom_query.changed.connect (() => {
-            if (!custom_query.text.contains("{query}") && custom_query.text.length > 0) {
-                debug("Custom query string does not contain {query}");
+            if (!custom_query.text.contains ("{query}") && custom_query.text.length > 0) {
+                debug ("Custom query string does not contain {query}");
                 show_widget (custom_error);
             } else {
                 hide_widget (custom_error);
             }
         });
-
-        if (engine_choice.active_id == CUSTOM_ENGINE_ID) {
-            show_widget (custom_box);
-        } else {
-            hide_widget (custom_box);
-        }
 
         enabled_box = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 10) {
             halign = Gtk.Align.CENTER
@@ -164,20 +165,20 @@ public class WebSearch.Plug : Gtk.Grid {
         enabled_box.pack_start (enabled_switch, false, false, 0);
 
         this.attach (enabled_box, 0, 0, 1, 1);
-        this.attach (label,       0, 1, 1, 1);
-        this.attach (selector,    0, 2, 1, 1);
-        this.attach (custom_box,  0, 3, 1, 1);
+        this.attach (label, 0, 1, 1, 1);
+        this.attach (selector, 0, 2, 1, 1);
+        this.attach (custom_box, 0, 3, 1, 1);
 
         show_all ();
     }
 
-    private static void show_widget(Gtk.Widget w) {
+    private static void show_widget (Gtk.Widget w) {
         w.no_show_all = false;
         w.visible = true;
         w.show_all ();
     }
 
-    private static void hide_widget(Gtk.Widget w) {
+    private static void hide_widget (Gtk.Widget w) {
         w.no_show_all = true;
         w.visible = false;
     }
