@@ -26,8 +26,8 @@ public class WebSearch.Plug : Gtk.Grid {
         public int sort_id;
     }
 
-    private ApplicationsMenuSettings settings;
     private const string default_engine = "duckduckgo";
+    private GLib.Settings gsettings;
 
     private static Gee.HashMap<string, Choice> search_engine_choices;
 
@@ -40,7 +40,7 @@ public class WebSearch.Plug : Gtk.Grid {
     private Gtk.Label enabled_label;
     private Gtk.Switch enabled_switch;
 
-    static construct {
+    construct {
         /*
         * sort_id is used to pre-sort the items. We want alphabetical except for the default (placed at the top),
         * and custom (placed at the bottom). The reasoning being that it "feels right" to have the default option
@@ -54,14 +54,12 @@ public class WebSearch.Plug : Gtk.Grid {
         search_engine_choices["yahoo"]      = new Choice () { sort_id = 4, text = _("Yahoo!") };
         search_engine_choices["yandex"]     = new Choice () { sort_id = 5, text = _("Yandex") };
         search_engine_choices["custom"]     = new Choice () { sort_id = 6, text = _("Custom") };
-    }
 
-    construct {
         this.halign = Gtk.Align.CENTER;
         this.row_spacing = 24;
         this.margin = 24;
         this.margin_top = 48;
-        settings = new ApplicationsMenuSettings ();
+        gsettings = new GLib.Settings ("io.elementary.desktop.wingpanel.applications-menu");
         custom_box = new Gtk.Grid () {
             row_spacing = 5,
             column_spacing = 10,
@@ -100,53 +98,49 @@ public class WebSearch.Plug : Gtk.Grid {
 
         // This structure corresponds to the search_engine_choices map structure.
         store = new Gtk.ListStore (3, typeof (string), typeof (string), typeof (int));
+        store.set_sort_column_id (2, Gtk.SortType.ASCENDING);
         Gtk.TreeIter iter;
         foreach (var choice in search_engine_choices.entries) {
             store.append (out iter);
             store.set (iter, 0, choice.key, 1, choice.value.text, 2, choice.value.sort_id);
         }
 
-        engine_choice = new Gtk.ComboBox.with_model (store);
+        engine_choice = new Gtk.ComboBox.with_model (store) {
+            id_column = 0
+        };
         selector.attach (engine_choice, 1, 0, 1, 1);
         var renderer = new Gtk.CellRendererText ();
         engine_choice.pack_start (renderer, true);
         engine_choice.add_attribute (renderer, "text", 1);
 
-        string engine_id;
-        if (settings.web_search_engine == null || settings.web_search_engine.length == 0) {
-            engine_id = default_engine;
-        } else {
-            engine_id = settings.web_search_engine[0];
-        }
-        if (engine_id == "custom") {
-            custom_query.text = settings.web_search_engine[1];
-            custom_box.no_show_all = false;
-            custom_box.visible = true;
-            custom_query_changed();
-        }
-        iter = get_iter_for_id (engine_id) ?? get_iter_for_id (default_engine);
-        engine_choice.set_active_iter (iter);
+        gsettings.bind ("web-search-engine-id", engine_choice, "active_id", GLib.SettingsBindFlags.DEFAULT);
+        gsettings.bind ("web-search-custom-url", custom_query, "text", GLib.SettingsBindFlags.DEFAULT);
         engine_choice.changed.connect (() => {
             Gtk.TreeIter i;
             engine_choice.get_active_iter (out i);
             Value id;
             store.get_value (i, 0, out id);
             if ((string) id == "custom") {
-                custom_query.text = settings.web_search_engine[1];
-                settings.web_search_engine = new string[] { (string) id, custom_query.text };
-                custom_box.visible = true;
-                custom_box.no_show_all = false;
-                custom_box.show_all ();
+                show_widget (custom_box);
             } else {
-                settings.web_search_engine = new string[] { (string) id };
-                custom_box.visible = false;
-                custom_box.no_show_all = true;
+                hide_widget (custom_box);
             }
         });
 
-        custom_query.changed.connect (custom_query_changed);
+        custom_query.changed.connect (() => {
+            if (!custom_query.text.contains("{query}") && custom_query.text.length > 0) {
+                debug("Custom query string does not contain {query}");
+                show_widget (custom_error);
+            } else {
+                hide_widget (custom_error);
+            }
+        });
 
-        store.set_sort_column_id (2, Gtk.SortType.ASCENDING);
+        if (engine_choice.active_id == "custom") {
+            show_widget (custom_box);
+        } else {
+            hide_widget (custom_box);
+        }
 
         enabled_box = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 10) {
             halign = Gtk.Align.CENTER
@@ -158,7 +152,6 @@ public class WebSearch.Plug : Gtk.Grid {
 
         enabled_switch = new Gtk.Switch ();
 
-        var gsettings = new GLib.Settings ("io.elementary.desktop.wingpanel.applications-menu");
         gsettings.bind ("web-search-enabled", enabled_switch, "active", GLib.SettingsBindFlags.DEFAULT);
 
         enabled_box.pack_start (enabled_label, false, false, 0);
@@ -172,29 +165,15 @@ public class WebSearch.Plug : Gtk.Grid {
         show_all ();
     }
 
-    private void custom_query_changed() {
-        if (!custom_query.text.contains("{query}") && custom_query.text.length > 0) {
-            debug("Custom query string does not contain {query}");
-            custom_error.visible = true;
-            custom_error.no_show_all = false;
-            custom_error.show_all ();
-        } else {
-            custom_error.visible = false;
-            custom_error.no_show_all = true;
-        }
-        settings.web_search_engine = new string[] { "custom", custom_query.text };
+    private static void show_widget(Gtk.Widget w) {
+        w.no_show_all = false;
+        w.visible = true;
+        w.show_all ();
     }
 
-    private Gtk.TreeIter? get_iter_for_id (string id) {
-        Gtk.TreeIter iter;
-        for (bool next = store.get_iter_first (out iter); next; next = store.iter_next (ref iter)) {
-            Value id_value;
-            store.get_value (iter, 0, out id_value);
-            if ((string) id_value == id) {
-                return iter;
-            }
-        }
-        return null;
+    private static void hide_widget(Gtk.Widget w) {
+        w.no_show_all = true;
+        w.visible = false;
     }
 
     public Plug () {
