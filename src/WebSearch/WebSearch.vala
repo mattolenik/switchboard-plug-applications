@@ -26,7 +26,7 @@ public class WebSearch.Plug : Gtk.Grid {
         public int sort_id;
     }
 
-    private Wingpanel.ApplicationsMenu.Settings settings;
+    private ApplicationsMenuSettings settings;
     private const string default_engine = "duckduckgo";
 
     private static Gee.HashMap<string, Choice> search_engine_choices;
@@ -36,11 +36,16 @@ public class WebSearch.Plug : Gtk.Grid {
     private Gtk.ComboBox engine_choice;
     private Gtk.Grid custom_box;
     private Gtk.ListStore store;
+    private Gtk.Box enabled_box;
+    private Gtk.Label enabled_label;
+    private Gtk.Switch enabled_switch;
 
     static construct {
-        // sort_id is used to pre-sort the items. We want alphabetical except for the default, placed at the top,
-        // and custom, placed at the bottom. The reasoning being that it "feels right" to have the default option
-        // most visible at the top, and custom, being the least likely to be used, at the bottom.
+        /*
+        * sort_id is used to pre-sort the items. We want alphabetical except for the default (placed at the top),
+        * and custom (placed at the bottom). The reasoning being that it "feels right" to have the default option
+        * most visible at the top, and custom, being the least likely to be used, at the bottom.
+        */
         search_engine_choices = new Gee.HashMap<string,  Choice>();
         search_engine_choices["duckduckgo"] = new Choice () { sort_id = 0, text = _("DuckDuckGo (default)") };
         search_engine_choices["baidu"]      = new Choice () { sort_id = 1, text = _("Baidu") };
@@ -55,8 +60,8 @@ public class WebSearch.Plug : Gtk.Grid {
         this.halign = Gtk.Align.CENTER;
         this.row_spacing = 24;
         this.margin = 24;
-        this.margin_top = 64;
-        settings = new Wingpanel.ApplicationsMenu.Settings ();
+        this.margin_top = 48;
+        settings = new ApplicationsMenuSettings ();
         custom_box = new Gtk.Grid () {
             row_spacing = 5,
             column_spacing = 10,
@@ -108,13 +113,13 @@ public class WebSearch.Plug : Gtk.Grid {
         engine_choice.add_attribute (renderer, "text", 1);
 
         string engine_id;
-        if (settings.search_engine == null || settings.search_engine.length == 0) {
+        if (settings.web_search_engine == null || settings.web_search_engine.length == 0) {
             engine_id = default_engine;
         } else {
-            engine_id = settings.search_engine[0];
+            engine_id = settings.web_search_engine[0];
         }
         if (engine_id == "custom") {
-            custom_query.text = settings.search_engine[1];
+            custom_query.text = settings.web_search_engine[1];
             custom_box.no_show_all = false;
             custom_box.visible = true;
             custom_query_changed();
@@ -127,13 +132,13 @@ public class WebSearch.Plug : Gtk.Grid {
             Value id;
             store.get_value (i, 0, out id);
             if ((string) id == "custom") {
-                custom_query.text = settings.search_engine[1];
-                settings.search_engine = new string[] { (string) id, custom_query.text };
+                custom_query.text = settings.web_search_engine[1];
+                settings.web_search_engine = new string[] { (string) id, custom_query.text };
                 custom_box.visible = true;
                 custom_box.no_show_all = false;
                 custom_box.show_all ();
             } else {
-                settings.search_engine = new string[] { (string) id };
+                settings.web_search_engine = new string[] { (string) id };
                 custom_box.visible = false;
                 custom_box.no_show_all = true;
             }
@@ -143,9 +148,26 @@ public class WebSearch.Plug : Gtk.Grid {
 
         store.set_sort_column_id (2, Gtk.SortType.ASCENDING);
 
-        this.attach (label, 0, 0, 1, 1);
-        this.attach (selector, 0, 1, 1, 1);
-        this.attach (custom_box, 0, 2, 1, 1);
+        enabled_box = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 10) {
+            halign = Gtk.Align.CENTER
+        };
+
+        enabled_label = new Gtk.Label (null) {
+            label = _("Enable Web Search")
+        };
+
+        enabled_switch = new Gtk.Switch ();
+
+        var gsettings = new GLib.Settings ("io.elementary.desktop.wingpanel.applications-menu");
+        gsettings.bind ("web-search-enabled", enabled_switch, "active", GLib.SettingsBindFlags.DEFAULT);
+
+        enabled_box.pack_start (enabled_label, false, false, 0);
+        enabled_box.pack_start (enabled_switch, false, false, 0);
+
+        this.attach (enabled_box, 0, 0, 1, 1);
+        this.attach (label,       0, 1, 1, 1);
+        this.attach (selector,    0, 2, 1, 1);
+        this.attach (custom_box,  0, 3, 1, 1);
 
         show_all ();
     }
@@ -160,7 +182,7 @@ public class WebSearch.Plug : Gtk.Grid {
             custom_error.visible = false;
             custom_error.no_show_all = true;
         }
-        settings.search_engine = new string[] { "custom", custom_query.text };
+        settings.web_search_engine = new string[] { "custom", custom_query.text };
     }
 
     private Gtk.TreeIter? get_iter_for_id (string id) {

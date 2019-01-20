@@ -19,14 +19,10 @@
 * Authored by: Matthew Olenik <olenikm@gmail.com>
 */
 
-class Wingpanel.ApplicationsMenu.Settings : Granite.Services.Settings {
-    public int columns { get; set; }
-    public int rows { get; set; }
-    public bool use_category { get; set; }
-    public string screen_resolution { get; set; }
-    public string[] search_engine { get; set; }
+class ApplicationsMenuSettings : Granite.Services.Settings {
+    public string[] web_search_engine { get; set; }
 
-    public Settings () {
+    public ApplicationsMenuSettings () {
         base ("io.elementary.desktop.wingpanel.applications-menu");
     }
 }
