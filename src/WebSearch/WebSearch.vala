@@ -26,7 +26,8 @@ public class WebSearch.Plug : Gtk.Grid {
         public int sort_id;
     }
 
-    private const string default_engine = "duckduckgo";
+    private const string DEFAULT_ENGINE_ID = "duckduckgo";
+    private const string CUSTOM_ENGINE_ID = "custom";
     private GLib.Settings gsettings;
 
     private static Gee.HashMap<string, Choice> search_engine_choices;
@@ -47,13 +48,13 @@ public class WebSearch.Plug : Gtk.Grid {
         * most visible at the top, and custom, being the least likely to be used, at the bottom.
         */
         search_engine_choices = new Gee.HashMap<string,  Choice>();
-        search_engine_choices["duckduckgo"] = new Choice () { sort_id = 0, text = _("DuckDuckGo (default)") };
-        search_engine_choices["baidu"]      = new Choice () { sort_id = 1, text = _("Baidu") };
-        search_engine_choices["bing"]       = new Choice () { sort_id = 2, text = _("Bing") };
-        search_engine_choices["google"]     = new Choice () { sort_id = 3, text = _("Google") };
-        search_engine_choices["yahoo"]      = new Choice () { sort_id = 4, text = _("Yahoo!") };
-        search_engine_choices["yandex"]     = new Choice () { sort_id = 5, text = _("Yandex") };
-        search_engine_choices["custom"]     = new Choice () { sort_id = 6, text = _("Custom") };
+        search_engine_choices["duckduckgo"]     = new Choice () { sort_id = 0, text = _("DuckDuckGo (default)") };
+        search_engine_choices["baidu"]          = new Choice () { sort_id = 1, text = _("Baidu") };
+        search_engine_choices["bing"]           = new Choice () { sort_id = 2, text = _("Bing") };
+        search_engine_choices["google"]         = new Choice () { sort_id = 3, text = _("Google") };
+        search_engine_choices["yahoo"]          = new Choice () { sort_id = 4, text = _("Yahoo!") };
+        search_engine_choices["yandex"]         = new Choice () { sort_id = 5, text = _("Yandex") };
+        search_engine_choices[CUSTOM_ENGINE_ID] = new Choice () { sort_id = 6, text = _("Custom") };
 
         this.halign = Gtk.Align.CENTER;
         this.row_spacing = 24;
@@ -115,12 +116,17 @@ public class WebSearch.Plug : Gtk.Grid {
 
         gsettings.bind ("web-search-engine-id", engine_choice, "active_id", GLib.SettingsBindFlags.DEFAULT);
         gsettings.bind ("web-search-custom-url", custom_query, "text", GLib.SettingsBindFlags.DEFAULT);
+
+        if (engine_choice.active_id == null || engine_choice.active_id.chomp () == "") {
+            // Fall back to the default if a bad ID is found. This shouldn't happen unless the gsettings were tampered with.
+            engine_choice.active_id = DEFAULT_ENGINE_ID;
+        }
         engine_choice.changed.connect (() => {
             Gtk.TreeIter i;
             engine_choice.get_active_iter (out i);
             Value id;
             store.get_value (i, 0, out id);
-            if ((string) id == "custom") {
+            if ((string) id == CUSTOM_ENGINE_ID) {
                 show_widget (custom_box);
             } else {
                 hide_widget (custom_box);
@@ -136,7 +142,7 @@ public class WebSearch.Plug : Gtk.Grid {
             }
         });
 
-        if (engine_choice.active_id == "custom") {
+        if (engine_choice.active_id == CUSTOM_ENGINE_ID) {
             show_widget (custom_box);
         } else {
             hide_widget (custom_box);
