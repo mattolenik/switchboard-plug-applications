@@ -40,6 +40,7 @@ public class WebSearch.Plug : Gtk.Grid {
     private Gtk.Box enabled_box;
     private Gtk.Label enabled_label;
     private Gtk.Switch enabled_switch;
+    private string STRAWBERRY = "#c6262e";  // From elementary human interface guidelines
 
     construct {
         /*
@@ -71,14 +72,23 @@ public class WebSearch.Plug : Gtk.Grid {
             hexpand = true,
             placeholder_text = _("https://example.com/?q={query}")
         };
-        custom_error = new Gtk.Label (
-            _("<span color='red'>Be sure to place <b>{query}</b> in the URL wherever the search terms should appear.</span>")) {
+        var error_text =
+            @"<span color='$STRAWBERRY'>" +
+            _("Search URL must be a valid URL that contains <b>{query}</b> wherever the search terms should appear, e.g. https://example.com/?q={query}") +
+            "</span>";
+        custom_error = new Gtk.Label (error_text) {
             use_markup = true,
+            wrap = true,
+            width_chars = 60,
+            max_width_chars = 60,
             halign = Gtk.Align.START,
+            justify = Gtk.Justification.LEFT,
+            margin = 0,
             no_show_all = true,
             visible = false
         };
-        var custom_query_label = new Gtk.Label (_("Custom URL")) {
+        custom_error.set_padding (0, 0);
+        var custom_query_label = new Gtk.Label (_("Custom Search URL")) {
             halign = Gtk.Align.START,
             hexpand = false
         };
@@ -140,14 +150,8 @@ public class WebSearch.Plug : Gtk.Grid {
             }
         });
 
-        custom_query.changed.connect (() => {
-            if (!custom_query.text.contains ("{query}") && custom_query.text.length > 0) {
-                debug ("Custom query string does not contain {query}");
-                show_widget (custom_error);
-            } else {
-                hide_widget (custom_error);
-            }
-        });
+        custom_query.changed.connect (check_custom_error);
+        check_custom_error ();
 
         enabled_box = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 10) {
             halign = Gtk.Align.CENTER
@@ -170,6 +174,14 @@ public class WebSearch.Plug : Gtk.Grid {
         this.attach (custom_box, 0, 3, 1, 1);
 
         show_all ();
+    }
+
+    private void check_custom_error () {
+        if (!custom_query.text.contains ("{query}") && custom_query.text.length > 0) {
+            show_widget (custom_error);
+        } else {
+            hide_widget (custom_error);
+        }
     }
 
     private static void show_widget (Gtk.Widget w) {
