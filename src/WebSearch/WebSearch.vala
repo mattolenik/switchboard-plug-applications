@@ -161,7 +161,7 @@ public class WebSearch.Plug : Gtk.Grid {
         };
 
         var enabled_label = new Gtk.Label (null) {
-            label = _("<span size='large'>Applications Menu Web Search</span>"),
+            label = _("<span size='large'>Enable Web Search</span>"),
             use_markup = true
         };
 
