@@ -26,20 +26,17 @@ public class WebSearch.Plug : Gtk.Grid {
         public int sort_id;
     }
 
-    private const string DEFAULT_ENGINE_ID = "duckduckgo";
-    private const string CUSTOM_ENGINE_ID = "custom";
-    private GLib.Settings gsettings;
-
+    private Settings gsettings = new Settings ("io.elementary.desktop.wingpanel.applications-menu");
     private static Gee.HashMap<string, Choice> search_engine_choices;
 
-    private Gtk.Entry custom_query;
-    private Gtk.Label custom_error;
+    private Gtk.Entry custom_search_url_entry;
+    private Gtk.Label custom_error_label;
     private Gtk.ComboBox engine_choice;
-    private Gtk.Grid custom_box;
     private Gtk.ListStore store;
-    private Gtk.Box enabled_box;
-    private Gtk.Label enabled_label;
     private Gtk.Switch enabled_switch;
+
+    private const string DEFAULT_ENGINE_ID = "duckduckgo";
+    private const string CUSTOM_ENGINE_ID = "custom";
     private string STRAWBERRY = "#c6262e";  // From elementary human interface guidelines
 
     construct {
@@ -57,59 +54,60 @@ public class WebSearch.Plug : Gtk.Grid {
         search_engine_choices["yandex"] = new Choice () { sort_id = 5, text = _("Yandex") };
         search_engine_choices[CUSTOM_ENGINE_ID] = new Choice () { sort_id = 6, text = _("Custom") };
 
-        this.halign = Gtk.Align.CENTER;
-        this.row_spacing = 24;
-        this.margin = 24;
-        this.margin_top = 48;
-        gsettings = new GLib.Settings ("io.elementary.desktop.wingpanel.applications-menu");
-        custom_box = new Gtk.Grid () {
+        halign = Gtk.Align.CENTER;
+        row_spacing = 24;
+        margin = 24;
+        margin_top = 48;
+
+        /* Container that groups custom URL label, entry, and error label widgets. */
+        var custom_box = new Gtk.Grid () {
             row_spacing = 5,
             column_spacing = 10,
             visible = false,
             no_show_all = true
         };
-        custom_query = new Gtk.Entry () {
+        custom_search_url_entry = new Gtk.Entry () {
             hexpand = true,
             placeholder_text = _("https://example.com/?q={query}")
         };
         var error_text =
             @"<span color='$STRAWBERRY'>" +
-            _("Search URL must be a valid URL that contains <b>{query}</b> wherever the search terms should appear, e.g. https://example.com/?q={query}") +
+            _("Search URL must be a URL that contains <b>{query}</b> wherever the search terms should appear, e.g. https://example.com/?q={query}") +
             "</span>";
-        custom_error = new Gtk.Label (error_text) {
+        custom_error_label = new Gtk.Label (error_text) {
             use_markup = true,
             wrap = true,
-            width_chars = 60,
-            max_width_chars = 60,
+            width_chars = 55,
+            max_width_chars = 55,
             halign = Gtk.Align.START,
-            justify = Gtk.Justification.LEFT,
-            margin = 0,
             no_show_all = true,
             visible = false
         };
-        custom_error.set_padding (0, 0);
-        var custom_query_label = new Gtk.Label (_("Custom Search URL")) {
+        var custom_search_label = new Gtk.Label (_("Custom Search URL")) {
             halign = Gtk.Align.START,
             hexpand = false
         };
-        custom_box.attach (custom_query_label, 0, 0, 1, 1);
-        custom_box.attach (custom_query, 1, 0, 1, 1);
-        custom_box.attach (custom_error, 1, 1, 1, 1);
+        custom_box.attach (custom_search_label, 0, 0, 1, 1);
+        custom_box.attach (custom_search_url_entry, 1, 0, 1, 1);
+        custom_box.attach (custom_error_label, 1, 1, 1, 1);
 
-        var selector = new Gtk.Grid () {
+        /* Container to hold label + combobox */
+        var search_selector_grid = new Gtk.Grid () {
             halign = Gtk.Align.START,
             column_spacing = 10
         };
 
-        var label = new Gtk.Label (
+        var summary_label = new Gtk.Label (
             _("Select the search engine to use when launching a web search from within the Applications menu."));
 
         var choice_label = new Gtk.Label (_("Search the web with"));
-        selector.attach (choice_label, 0, 0, 1, 1);
+        search_selector_grid.attach (choice_label, 0, 0, 1, 1);
 
-        // This structure corresponds to the search_engine_choices map structure.
+        /* This structure corresponds to the search_engine_choices map structure. */
         store = new Gtk.ListStore (3, typeof (string), typeof (string), typeof (int));
         store.set_sort_column_id (2, Gtk.SortType.ASCENDING);
+
+        /* Populate combobox with vales from search_engine_choices structure. */
         Gtk.TreeIter iter;
         foreach (var choice in search_engine_choices.entries) {
             store.append (out iter);
@@ -119,13 +117,13 @@ public class WebSearch.Plug : Gtk.Grid {
         engine_choice = new Gtk.ComboBox.with_model (store) {
             id_column = 0
         };
-        selector.attach (engine_choice, 1, 0, 1, 1);
+        search_selector_grid.attach (engine_choice, 1, 0, 1, 1);
         var renderer = new Gtk.CellRendererText ();
         engine_choice.pack_start (renderer, true);
         engine_choice.add_attribute (renderer, "text", 1);
 
-        gsettings.bind ("web-search-engine-id", engine_choice, "active_id", GLib.SettingsBindFlags.DEFAULT);
-        gsettings.bind ("web-search-custom-url", custom_query, "text", GLib.SettingsBindFlags.DEFAULT);
+        gsettings.bind ("web-search-engine-id", engine_choice, "active_id", SettingsBindFlags.DEFAULT);
+        gsettings.bind ("web-search-custom-url", custom_search_url_entry, "text", SettingsBindFlags.DEFAULT);
 
         // Fall back to the default if a bad ID is found. This shouldn't happen unless the gsettings were tampered with.
         if (engine_choice.active_id == null || engine_choice.active_id.chomp () == "") {
@@ -150,37 +148,37 @@ public class WebSearch.Plug : Gtk.Grid {
             }
         });
 
-        custom_query.changed.connect (check_custom_error);
+        custom_search_url_entry.changed.connect (check_custom_error);
         check_custom_error ();
 
-        enabled_box = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 10) {
+        var enabled_box = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 10) {
             halign = Gtk.Align.CENTER
         };
 
-        enabled_label = new Gtk.Label (null) {
+        var enabled_label = new Gtk.Label (null) {
             label = _("Enable Web Search")
         };
 
         enabled_switch = new Gtk.Switch ();
 
-        gsettings.bind ("web-search-enabled", enabled_switch, "active", GLib.SettingsBindFlags.DEFAULT);
+        gsettings.bind ("web-search-enabled", enabled_switch, "active", SettingsBindFlags.DEFAULT);
 
         enabled_box.pack_start (enabled_label, false, false, 0);
         enabled_box.pack_start (enabled_switch, false, false, 0);
 
-        this.attach (enabled_box, 0, 0, 1, 1);
-        this.attach (label, 0, 1, 1, 1);
-        this.attach (selector, 0, 2, 1, 1);
-        this.attach (custom_box, 0, 3, 1, 1);
+        attach (enabled_box, 0, 0, 1, 1);
+        attach (summary_label, 0, 1, 1, 1);
+        attach (search_selector_grid, 0, 2, 1, 1);
+        attach (custom_box, 0, 3, 1, 1);
 
         show_all ();
     }
 
     private void check_custom_error () {
-        if (!custom_query.text.contains ("{query}") && custom_query.text.length > 0) {
-            show_widget (custom_error);
+        if (!custom_search_url_entry.text.contains ("{query}") && custom_search_url_entry.text.length > 0) {
+            show_widget (custom_error_label);
         } else {
-            hide_widget (custom_error);
+            hide_widget (custom_error_label);
         }
     }
 
