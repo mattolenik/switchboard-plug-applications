@@ -34,10 +34,12 @@ public class WebSearch.Plug : Gtk.Grid {
     private Gtk.ComboBox engine_choice;
     private Gtk.ListStore store;
     private Gtk.Switch enabled_switch;
+    private Gtk.Grid search_selector_grid;
+    private Gtk.Grid custom_box;
 
     private const string DEFAULT_ENGINE_ID = "duckduckgo";
     private const string CUSTOM_ENGINE_ID = "custom";
-    private string STRAWBERRY = "#c6262e";  // From elementary human interface guidelines
+    private const string STRAWBERRY = "#c6262e";  // From elementary human interface guidelines
 
     construct {
         /*
@@ -60,7 +62,7 @@ public class WebSearch.Plug : Gtk.Grid {
         margin_top = 48;
 
         /* Container that groups custom URL label, entry, and error label widgets. */
-        var custom_box = new Gtk.Grid () {
+        custom_box = new Gtk.Grid () {
             row_spacing = 5,
             column_spacing = 10,
             visible = false,
@@ -92,7 +94,7 @@ public class WebSearch.Plug : Gtk.Grid {
         custom_box.attach (custom_error_label, 1, 1, 1, 1);
 
         /* Container to hold label + combobox */
-        var search_selector_grid = new Gtk.Grid () {
+        search_selector_grid = new Gtk.Grid () {
             halign = Gtk.Align.START,
             column_spacing = 10
         };
@@ -160,8 +162,9 @@ public class WebSearch.Plug : Gtk.Grid {
         };
 
         enabled_switch = new Gtk.Switch ();
-
         gsettings.bind ("web-search-enabled", enabled_switch, "active", SettingsBindFlags.DEFAULT);
+        set_form_sensitive (enabled_switch.active);
+        enabled_switch.state_set.connect (set_form_sensitive);
 
         enabled_box.pack_start (enabled_label, false, false, 0);
         enabled_box.pack_start (enabled_switch, false, false, 0);
@@ -172,6 +175,13 @@ public class WebSearch.Plug : Gtk.Grid {
         attach (custom_box, 0, 3, 1, 1);
 
         show_all ();
+    }
+
+    /* Gray out parts of the form when search is enabled or disabled */
+    private bool set_form_sensitive (bool sensitive) {
+        custom_box.sensitive = sensitive;
+        search_selector_grid.sensitive = sensitive;
+        return false;  // Do not block default handler
     }
 
     private void check_custom_error () {
