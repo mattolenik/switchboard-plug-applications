@@ -88,7 +88,7 @@ public class WebSearch.Plug : Gtk.Grid {
             no_show_all = true,
             visible = false
         };
-        var custom_search_label = new Gtk.Label (_("Custom Search URL:")) {
+        var custom_search_label = new Gtk.Label (_("Custom search URL:")) {
             halign = Gtk.Align.START,
             hexpand = false
         };
