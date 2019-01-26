@@ -102,8 +102,7 @@ public class WebSearch.Plug : Gtk.Grid {
             column_spacing = 10
         };
 
-        var summary_label = new Gtk.Label (
-            _("When searching with the Applications menu, provide an option to launch a search in your web browser."));
+        var summary_label = new Gtk.Label (_("When searching with the Applications Menu, offer an option to launch a web search in your browser."));
 
         var choice_label = new Gtk.Label (_("Search the web with:"));
         search_selector_grid.attach (choice_label, 0, 0, 1, 1);
@@ -157,11 +156,11 @@ public class WebSearch.Plug : Gtk.Grid {
         check_custom_error ();
 
         var enabled_box = new Gtk.Box (Gtk.Orientation.HORIZONTAL, 10) {
-            halign = Gtk.Align.CENTER
+            halign = Gtk.Align.START
         };
 
         var enabled_label = new Gtk.Label (null) {
-            label = _("<span size='large'>Enable Web Search</span>"),
+            label = "<span size='large'>" + _("Enable Web Search:") + "</span>",
             use_markup = true
         };
 
